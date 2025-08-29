@@ -1,15 +1,40 @@
 {
   "name": "testrail-mcp-server",
   "version": "0.1.0",
-  "private": true,
-  "description": "Local MCP server for TestRail",
+  "description": "A Model Context Protocol (MCP) server that provides TestRail integration tools for AI assistants like Cursor",
   "license": "MIT",
   "type": "commonjs",
-  "engines": {
-    "node": ">=18.17.0"
-  },
+  "main": "dist/server.js",
+  "types": "dist/server.d.ts",
   "bin": {
     "testrail-mcp-server": "dist/server.js"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "testrail",
+    "mcp",
+    "model-context-protocol",
+    "ai",
+    "cursor",
+    "testing",
+    "test-management",
+    "automation"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Derrbal/testrail-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Derrbal/testrail-mcp/issues"
+  },
+  "homepage": "https://github.com/Derrbal/testrail-mcp#readme",
+  "author": "Bohdan Derbal <bderbal07@gmail.com>",
+  "engines": {
+    "node": ">=18.17.0"
   },
   "scripts": {
     "dev": "tsx src/simple-server.ts",
@@ -23,6 +48,7 @@
     "test:coverage": "vitest --coverage",
     "security:scan": "node scripts/security-scan.js",
     "security:scan:ci": "node scripts/security-scan.js",
+    "prepublishOnly": "npm run build && npm run test",
     "preinstall": "npm run security:scan"
   },
   "dependencies": {
