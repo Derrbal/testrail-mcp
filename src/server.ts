@@ -3,7 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { getCase, updateCase, getProjects, getProject, getSuites, getSuite, getCases, addAttachmentToCase, getSections, getRuns, getRun, getTests, getTest, updateTest, updateRun, addResult, getCaseFields } from './services/testrailService';
+import { getCase, updateCase, addCase, getProjects, getProject, getSuites, getSuite, getCases, addAttachmentToCase, getSections, getRuns, getRun, getTests, getTest, updateTest, updateRun, addResult, getCaseFields, CaseCreatePayload } from './services/testrailService';
 
 async function main(): Promise<void> {
   console.log('Starting TestRail MCP server...');
@@ -43,6 +43,67 @@ async function main(): Promise<void> {
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
         else if (e?.type === 'not_found') message = `Case ${case_id} not found`;
+        else if (e?.type === 'rate_limited') message = 'Rate limited by TestRail; try again later';
+        else if (e?.type === 'server') message = 'TestRail server error';
+        else if (e?.type === 'network') message = 'Network error contacting TestRail';
+        else if (e?.message) message = e.message;
+
+        return {
+          content: [
+            { type: 'text', text: message },
+          ],
+          isError: true,
+        };
+      }
+    },
+  );
+
+  console.log('Registering add_case tool...');
+  
+  server.registerTool(
+    'add_case',
+    {
+      title: 'Add TestRail Case',
+      description: 'Create a new TestRail test case in a specific section. IMPORTANT: Before creating a case, gather required information using get_projects, get_suites, get_sections, and get_case_fields tools to ensure proper section_id, type_id, and custom field values. Or ask the user to provide the information if not provided.',
+      inputSchema: {
+        title: z.string().min(1).describe('Test case title - should be descriptive and unique within the section'),
+        section_id: z.number().int().positive().describe('Section ID where the case will be created. REQUIRED: Use get_sections tool first to find valid section IDs for your project/suite. Different projects have different section structures.'),
+        type_id: z.number().int().positive().optional().describe('Test case type ID (e.g., 1=Acceptance, 2=Accessibility, 3=Automated, 4=Compatibility, 5=Destructive, 6=Functional, 7=Other, 8=Performance, 9=Regression, 10=Security, 11=Smoke & Sanity, 12=Usability). RECOMMENDED: Use get_cases tool to see what type_id values are used in existing cases in your target section.'),
+        priority_id: z.number().int().positive().optional().describe('Priority ID (1=Low, 2=Medium, 3=High, 4=Critical). RECOMMENDED: Use get_cases tool to see what priority_id values are used in existing cases.'),
+        refs: z.string().nullable().optional().describe('References (e.g., requirement IDs, JIRA tickets, user story numbers). Can be comma-separated for multiple references.'),
+        custom: z.record(z.string(), z.unknown()).optional().describe('Custom fields (key-value pairs). REQUIRED: Use get_case_fields tool first to discover available custom fields and their valid values. Common fields include: custom_automation_type (1=None, 2=Playwright, 3=ChatGPT, 4=Non-Automated, 5=Partial), custom_environment (1=UAT Only, 2=UAT/Prod, 3=Demo UAT, 4=Live UAT), custom_preconds (preconditions text), custom_steps (test steps text), custom_expected (expected results text). Some custom fields are required by the project configuration.'),
+      },
+    },
+    async ({ title, section_id, type_id, priority_id, refs, custom }) => {
+      console.log(`Add case tool called with section_id: ${section_id}, title: ${title}`);
+      try {
+        const payload: CaseCreatePayload = {
+          title,
+          section_id,
+          type_id,
+          priority_id,
+          refs,
+          custom,
+        };
+        
+        const result = await addCase(payload);
+        console.log(`Add case tool completed successfully. Case ID: ${result.id}`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        console.log(`Add case tool failed for section_id: ${section_id}`, err);
+        const e = err as { type?: string; status?: number; message?: string };
+        let message = 'Unexpected error';
+        if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
+        else if (e?.type === 'not_found') message = `Section ${section_id} not found. Use get_sections tool to find valid section IDs for your project.`;
+        else if (e?.type === 'validation_error') message = `Validation error: ${e.message}. Check custom field values using get_case_fields tool and ensure required fields are provided.`;
+        else if (e?.type === 'permission_denied') message = `Permission denied for section ${section_id}. Try a different project or section using get_projects and get_sections tools.`;
         else if (e?.type === 'rate_limited') message = 'Rate limited by TestRail; try again later';
         else if (e?.type === 'server') message = 'TestRail server error';
         else if (e?.type === 'network') message = 'Network error contacting TestRail';

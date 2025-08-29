@@ -2,6 +2,7 @@ import {
   testRailClient, 
   TestRailCaseDto, 
   TestRailCaseUpdateDto, 
+  TestRailCaseCreateDto,
   TestRailProjectDto, 
   TestRailSuiteDto, 
   TestRailCasesResponse, 
@@ -42,6 +43,15 @@ export interface CaseSummary {
 export interface CaseUpdatePayload {
   title?: string;
   section_id?: number;
+  type_id?: number;
+  priority_id?: number;
+  refs?: string | null;
+  custom?: Record<string, unknown>;
+}
+
+export interface CaseCreatePayload {
+  title: string;
+  section_id: number;
   type_id?: number;
   priority_id?: number;
   refs?: string | null;
@@ -285,6 +295,58 @@ export interface RunDetailSummary {
 
 export async function getCase(caseId: number): Promise<CaseSummary> {
   const data: TestRailCaseDto = await testRailClient.getCase(caseId);
+  const {
+    id,
+    title,
+    section_id,
+    type_id,
+    priority_id,
+    refs,
+    created_on,
+    updated_on,
+    ...rest
+  } = data;
+
+  const custom: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(rest)) {
+    if (key.startsWith('custom_')) custom[key] = value;
+  }
+
+  return {
+    id,
+    title,
+    section_id,
+    type_id,
+    priority_id,
+    refs: refs ?? null,
+    created_on,
+    updated_on,
+    custom: Object.keys(custom).length ? custom : undefined,
+  };
+}
+
+export async function addCase(payload: CaseCreatePayload): Promise<CaseSummary> {
+  // Transform the payload to match TestRail API format
+  const createPayload: TestRailCaseCreateDto = {
+    title: payload.title,
+    section_id: payload.section_id,
+    type_id: payload.type_id,
+    priority_id: payload.priority_id,
+    refs: payload.refs,
+  };
+
+  // Add custom fields with proper naming convention
+  if (payload.custom) {
+    for (const [key, value] of Object.entries(payload.custom)) {
+      // Ensure custom field keys have the 'custom_' prefix
+      const fieldKey = key.startsWith('custom_') ? key : `custom_${key}`;
+      createPayload[fieldKey] = value;
+    }
+  }
+
+  const data: TestRailCaseDto = await testRailClient.addCase(payload.section_id, createPayload);
+  
+  // Normalize the response using the same logic as getCase
   const {
     id,
     title,

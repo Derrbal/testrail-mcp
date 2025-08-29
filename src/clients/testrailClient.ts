@@ -32,6 +32,16 @@ export interface TestRailCaseUpdateDto {
   [key: string]: unknown;
 }
 
+export interface TestRailCaseCreateDto {
+  title: string;
+  section_id: number;
+  type_id?: number;
+  priority_id?: number;
+  refs?: string | null;
+  // Support for custom fields - any field starting with 'custom_'
+  [key: string]: unknown;
+}
+
 export interface TestRailProjectDto {
   id: number;
   name: string;
@@ -452,6 +462,27 @@ export class TestRailClient {
       const normalized = this.normalizeError(err);
       const safeDetails = this.getSafeErrorDetails(err);
       logger.error({ err: normalized, details: safeDetails }, 'TestRail updateCase failed');
+      throw normalized;
+    }
+  }
+
+  async addCase(sectionId: number, caseData: TestRailCaseCreateDto): Promise<TestRailCaseDto> {
+    try {
+      const res = await this.http.post(`/add_case/${sectionId}`, caseData);
+      if (res.status >= 200 && res.status < 300) {
+        logger.info({
+          message: 'Successfully created test case',
+          sectionId,
+          caseId: res.data.id,
+          responseSize: JSON.stringify(res.data).length,
+        });
+        return res.data as TestRailCaseDto;
+      }
+      throw Object.assign(new Error(`HTTP ${res.status}`), { response: res });
+    } catch (err) {
+      const normalized = this.normalizeError(err);
+      const safeDetails = this.getSafeErrorDetails(err);
+      logger.error({ err: normalized, details: safeDetails, sectionId }, 'TestRail addCase failed');
       throw normalized;
     }
   }

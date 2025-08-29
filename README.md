@@ -124,6 +124,7 @@ npx testrail-mcp-server --http
 
 **Available Tools**:
 - `get_case` - Fetch a TestRail test case by ID
+- `add_case` - Create a new test case in a section
 - `update_case` - Update a TestRail test case
 - `get_projects` - List all TestRail projects
 - `get_project` - Get project details

@@ -2,7 +2,7 @@
 
 ## Phase 1: Core Test Case Management (Week 1)
 - [x] get_case - Fetch single test case
-- [ ] add_case - Create new test case
+- [x] add_case - Create new test case
 - [x] update_case - Update existing test case
 - [ ] delete_case - Delete test case
 - [x] get_cases - Get multiple test cases with filters
