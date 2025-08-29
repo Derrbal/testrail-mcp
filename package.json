@@ -48,8 +48,7 @@
     "test:coverage": "vitest --coverage",
     "security:scan": "node scripts/security-scan.js",
     "security:scan:ci": "node scripts/security-scan.js",
-    "prepublishOnly": "npm run build && npm run test",
-    "preinstall": "npm run security:scan"
+    "prepublishOnly": "npm run build && npm run test"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.17.2",
