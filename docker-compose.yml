@@ -1,0 +1,26 @@
+version: '3.8'
+
+services:
+  testrail-mcp-server:
+    build: .
+    container_name: testrail-mcp-server
+    ports:
+      - "1823:1823"
+    environment:
+      - NODE_ENV=production
+      - TESTRAIL_USERNAME=${TESTRAIL_USERNAME}
+      - TESTRAIL_API_KEY=${TESTRAIL_API_KEY}
+      - TESTRAIL_URL=${TESTRAIL_URL}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:1823/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - testrail-mcp-network
+
+networks:
+  testrail-mcp-network:
+    driver: bridge
