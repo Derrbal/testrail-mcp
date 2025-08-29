@@ -17,18 +17,32 @@ A Model Context Protocol (MCP) server that provides TestRail integration tools f
 - Node.js 18.17.0 or higher
 - npm
 
-### Installation
+### Installation Options
 
-1. **Clone and setup**:
+#### Option 1: Using npm package (Recommended)
+
 ```bash
-git clone <repository-url>
+# Install globally
+npm install -g testrail-mcp-server
+
+# Or install locally
+npm install testrail-mcp-server
+```
+
+#### Option 2: From source
+
+```bash
+# Clone and setup
+git clone https://github.com/Derrbal/testrail-mcp.git
 cd testrail-mcp
 npm install
 npm run build
 ```
 
-2. **Configure environment variables**:
-Create a `.env` file in the project root:
+### Configure Environment Variables
+
+Create a `.env` file in your project root or set environment variables:
+
 ```env
 TESTRAIL_USERNAME=your_testrail_username
 TESTRAIL_API_KEY=your_testrail_api_key
@@ -38,6 +52,29 @@ TESTRAIL_URL=https://your-instance.testrail.com
 ## Cursor Integration
 
 ### Setup
+
+#### Option 1: Using npm package (Recommended)
+
+1. **Configure Cursor MCP Settings**:
+Open Cursor and go to Settings → Extensions → MCP. Add the following configuration:
+
+```json
+{
+  "mcpServers": {
+    "testrail": {
+      "command": "npx",
+      "args": ["testrail-mcp-server"],
+      "env": {
+        "TESTRAIL_USERNAME": "your_testrail_username",
+        "TESTRAIL_API_KEY": "your_testrail_api_key",
+        "TESTRAIL_URL": "https://your-instance.testrail.com"
+      }
+    }
+  }
+}
+```
+
+#### Option 2: Using local installation
 
 1. **Configure Cursor MCP Settings**:
 Open Cursor and go to Settings → Extensions → MCP. Add the following configuration:
@@ -62,7 +99,21 @@ Open Cursor and go to Settings → Extensions → MCP. Add the following configu
 
 ### Usage
 
+#### Using with Cursor
+
 Once configured, you can use TestRail tools directly in Cursor's chat:
+
+#### Using the npm package directly
+
+You can also use the MCP server directly from the command line:
+
+```bash
+# Run the server (stdio transport)
+npx testrail-mcp-server
+
+# Or run with HTTP transport
+npx testrail-mcp-server --http
+```
 
 **Example Commands**:
 - "Get all TestRail projects"
