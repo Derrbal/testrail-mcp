@@ -3,7 +3,7 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { getCase, updateCase, getProjects, getProject, getSuites, getSuite, getCases, addAttachmentToCase, getSections, getRuns, getRun, getTests, getTest, updateTest, updateRun, addResult } from './services/testrailService';
+import { getCase, updateCase, getProjects, getProject, getSuites, getSuite, getCases, addAttachmentToCase, getSections, getRuns, getRun, getTests, getTest, updateTest, updateRun, addResult, getCaseFields } from './services/testrailService';
 
 async function main(): Promise<void> {
   console.log('Starting TestRail MCP server...');
@@ -825,6 +825,48 @@ async function main(): Promise<void> {
           },
         ],
       };
+    },
+  );
+
+  console.log('Registering get_case_fields tool...');
+  
+  server.registerTool(
+    'get_case_fields',
+    {
+      title: 'Get TestRail Case Fields',
+      description: 'Returns a list of available test case custom fields.',
+      inputSchema: {},
+    },
+    async () => {
+      console.log('Get case fields tool called');
+      try {
+        const result = await getCaseFields();
+        console.log(`Get case fields tool completed successfully. Found ${result.length} fields`);
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      } catch (err) {
+        console.log('Get case fields tool failed', err);
+        const e = err as { type?: string; status?: number; message?: string };
+        let message = 'Unexpected error';
+        if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
+        else if (e?.type === 'rate_limited') message = 'Rate limited by TestRail; try again later';
+        else if (e?.type === 'server') message = 'TestRail server error';
+        else if (e?.type === 'network') message = 'Network error contacting TestRail';
+        else if (e?.message) message = e.message;
+
+        return {
+          content: [
+            { type: 'text', text: message },
+          ],
+          isError: true,
+        };
+      }
     },
   );
 

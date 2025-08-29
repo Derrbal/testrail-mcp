@@ -18,6 +18,7 @@ import {
   TestRailTestUpdateDto,
   TestRailStepResultDto,
   TestRailResultDto,
+  TestRailCaseFieldDto,
   GetCasesParams, 
   GetSectionsParams, 
   GetRunsParams, 
@@ -995,6 +996,30 @@ export interface AddResultFilters {
   custom?: Record<string, unknown>;
 }
 
+export interface CaseFieldSummary {
+  id: number;
+  label: string;
+  name: string;
+  system_name: string;
+  type_id: number;
+  description?: string;
+  display_order: number;
+  configs: Array<{
+    context: {
+      is_global: boolean;
+      project_ids: number[] | null;
+    };
+    id: string;
+    options: {
+      default_value?: string;
+      format?: string;
+      is_required?: boolean;
+      rows?: string;
+      [key: string]: unknown;
+    };
+  }>;
+}
+
 export async function addResult(filters: AddResultFilters): Promise<ResultSummary> {
   // Transform service filters to client parameters
   const clientParams: AddResultParams = {
@@ -1037,6 +1062,21 @@ export async function addResult(filters: AddResultFilters): Promise<ResultSummar
     custom_step_results: response.custom_step_results,
     custom: Object.keys(custom).length > 0 ? custom : undefined,
   };
+}
+
+export async function getCaseFields(): Promise<CaseFieldSummary[]> {
+  const fields: TestRailCaseFieldDto[] = await testRailClient.getCaseFields();
+  
+  return fields.map((field) => ({
+    id: field.id,
+    label: field.label,
+    name: field.name,
+    system_name: field.system_name,
+    type_id: field.type_id,
+    description: field.description,
+    display_order: field.display_order,
+    configs: field.configs,
+  }));
 }
 
 

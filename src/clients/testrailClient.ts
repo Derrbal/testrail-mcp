@@ -268,6 +268,30 @@ export interface TestRailTestsResponse {
   tests: TestRailTestDto[];
 }
 
+export interface TestRailCaseFieldDto {
+  configs: Array<{
+    context: {
+      is_global: boolean;
+      project_ids: number[] | null;
+    };
+    id: string;
+    options: {
+      default_value?: string;
+      format?: string;
+      is_required?: boolean;
+      rows?: string;
+      [key: string]: unknown;
+    };
+  }>;
+  description?: string;
+  display_order: number;
+  id: number;
+  label: string;
+  name: string;
+  system_name: string;
+  type_id: number;
+}
+
 export interface GetCasesParams {
   project_id: number;
   suite_id?: number;
@@ -590,6 +614,38 @@ export class TestRailClient {
       const normalized = this.normalizeError(err);
       const safeDetails = this.getSafeErrorDetails(err);
       logger.error({ err: normalized, details: safeDetails, projectId }, 'TestRail getSuites failed');
+      throw normalized;
+    }
+  }
+
+  async getCaseFields(): Promise<TestRailCaseFieldDto[]> {
+    try {
+      const res = await this.http.get('/get_case_fields');
+      logger.info({ 
+        status: res.status, 
+        dataType: typeof res.data,
+        dataIsArray: Array.isArray(res.data)
+      }, 'TestRail getCaseFields response info');
+      
+      if (res.status >= 200 && res.status < 300) {
+        if (Array.isArray(res.data)) {
+          return res.data as TestRailCaseFieldDto[];
+        } else {
+          logger.error({ 
+            status: res.status, 
+            responseData: res.data,
+            dataType: typeof res.data 
+          }, 'TestRail getCaseFields returned non-array response');
+          throw Object.assign(new Error('API returned non-array response'), { 
+            response: { status: 200 } // Make it look like a server error
+          });
+        }
+      }
+      throw Object.assign(new Error(`HTTP ${res.status}`), { response: res });
+    } catch (err) {
+      const normalized = this.normalizeError(err);
+      const safeDetails = this.getSafeErrorDetails(err);
+      logger.error({ err: normalized, details: safeDetails }, 'TestRail getCaseFields failed');
       throw normalized;
     }
   }
