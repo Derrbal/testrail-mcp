@@ -139,6 +139,7 @@ npx testrail-mcp-server --http
 - `get_test` - Get test details
 - `update_test` - Update test
 - `add_result` - Add test result
+- `get_case_fields` - Get available custom fields for test cases
 
 ### Troubleshooting
 

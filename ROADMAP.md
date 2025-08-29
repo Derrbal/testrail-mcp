@@ -47,7 +47,7 @@
 - [ ] get_users - List users
 - [ ] get_milestones - Get milestones
 - [ ] get_case_types - Get case types
-- [ ] get_case_fields - Get custom fields
+- [x] get_case_fields - Get custom fields
 - [ ] search_cases - Search test cases
 
 ## Phase 6: Bulk Operations & Utilities (Week 6)
