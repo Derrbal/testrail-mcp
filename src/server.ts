@@ -4,16 +4,17 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { getCase, updateCase, addCase, getProjects, getProject, getSuites, getSuite, getCases, addAttachmentToCase, getSections, getRuns, getRun, getTests, getTest, updateTest, updateRun, addResult, getCaseFields, CaseCreatePayload } from './services/testrailService';
+import { logger } from './logger';
 
 async function main(): Promise<void> {
-  console.log('Starting TestRail MCP server...');
+  logger.info('Starting TestRail MCP server...');
   
   const server = new McpServer({
     name: 'testrail-mcp',
     version: '0.1.0',
   });
 
-  console.log('Registering get_case tool...');
+  logger.debug('Registering get_case tool...');
   
   server.registerTool(
     'get_case',
@@ -25,10 +26,10 @@ async function main(): Promise<void> {
       },
     },
     async ({ case_id }) => {
-      console.log(`Tool called with case_id: ${case_id}`);
+      logger.debug(`Tool called with case_id: ${case_id}`);
       try {
         const result = await getCase(case_id);
-        console.log(`Tool completed successfully for case_id: ${case_id}`);
+        logger.debug(`Tool completed successfully for case_id: ${case_id}`);
         return {
           content: [
             {
@@ -38,7 +39,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Tool failed for case_id: ${case_id}`, err);
+        logger.error({ err }, `Tool failed for case_id: ${case_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -58,7 +59,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering add_case tool...');
+  logger.debug('Registering add_case tool...');
   
   server.registerTool(
     'add_case',
@@ -75,7 +76,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ title, section_id, type_id, priority_id, refs, custom }) => {
-      console.log(`Add case tool called with section_id: ${section_id}, title: ${title}`);
+      logger.debug(`Add case tool called with section_id: ${section_id}, title: ${title}`);
       try {
         const payload: CaseCreatePayload = {
           title,
@@ -87,7 +88,7 @@ async function main(): Promise<void> {
         };
         
         const result = await addCase(payload);
-        console.log(`Add case tool completed successfully. Case ID: ${result.id}`);
+        logger.debug(`Add case tool completed successfully. Case ID: ${result.id}`);
         return {
           content: [
             {
@@ -97,7 +98,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Add case tool failed for section_id: ${section_id}`, err);
+        logger.error({ err }, `Add case tool failed for section_id: ${section_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -119,7 +120,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering update_case tool...');
+  logger.debug('Registering update_case tool...');
   
   server.registerTool(
     'update_case',
@@ -137,7 +138,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ case_id, title, section_id, type_id, priority_id, refs, custom }) => {
-      console.log(`Update case tool called with case_id: ${case_id}`);
+      logger.debug(`Update case tool called with case_id: ${case_id}`);
       try {
         const updates = {
           title,
@@ -154,7 +155,7 @@ async function main(): Promise<void> {
         );
         
         const result = await updateCase(case_id, cleanUpdates);
-        console.log(`Update case tool completed successfully for case_id: ${case_id}`);
+        logger.debug(`Update case tool completed successfully for case_id: ${case_id}`);
         return {
           content: [
             {
@@ -164,7 +165,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Update case tool failed for case_id: ${case_id}`, err);
+        logger.error({ err }, `Update case tool failed for case_id: ${case_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -184,7 +185,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_projects tool...');
+  logger.debug('Registering get_projects tool...');
   
   server.registerTool(
     'get_projects',
@@ -194,10 +195,10 @@ async function main(): Promise<void> {
       inputSchema: {}, // No parameters required
     },
     async () => {
-      console.log('Get projects tool called');
+      logger.debug('Get projects tool called');
       try {
         const result = await getProjects();
-        console.log(`Get projects tool completed successfully. Found ${result.length} projects`);
+        logger.debug(`Get projects tool completed successfully. Found ${result.length} projects`);
         return {
           content: [
             {
@@ -207,7 +208,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log('Get projects tool failed', err);
+        logger.error({ err }, 'Get projects tool failed');
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -226,7 +227,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_project tool...');
+  logger.debug('Registering get_project tool...');
   
   server.registerTool(
     'get_project',
@@ -238,10 +239,10 @@ async function main(): Promise<void> {
       },
     },
     async ({ project_id }) => {
-      console.log(`Get project tool called with project_id: ${project_id}`);
+      logger.debug(`Get project tool called with project_id: ${project_id}`);
       try {
         const result = await getProject(project_id);
-        console.log(`Get project tool completed successfully for project_id: ${project_id}`);
+        logger.debug(`Get project tool completed successfully for project_id: ${project_id}`);
         return {
           content: [
             {
@@ -251,7 +252,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Get project tool failed for project_id: ${project_id}`, err);
+        logger.error({ err }, `Get project tool failed for project_id: ${project_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -271,7 +272,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_suites tool...');
+  logger.debug('Registering get_suites tool...');
   
   server.registerTool(
     'get_suites',
@@ -283,10 +284,10 @@ async function main(): Promise<void> {
       },
     },
     async ({ project_id }) => {
-      console.log(`Get suites tool called with project_id: ${project_id}`);
+      logger.debug(`Get suites tool called with project_id: ${project_id}`);
       try {
         const result = await getSuites(project_id);
-        console.log(`Get suites tool completed successfully for project_id: ${project_id}. Found ${result.length} suites`);
+        logger.debug(`Get suites tool completed successfully for project_id: ${project_id}. Found ${result.length} suites`);
         return {
           content: [
             {
@@ -296,7 +297,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Get suites tool failed for project_id: ${project_id}`, err);
+        logger.error({ err }, `Get suites tool failed for project_id: ${project_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -316,7 +317,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_suite tool...');
+  logger.debug('Registering get_suite tool...');
   
   server.registerTool(
     'get_suite',
@@ -328,10 +329,10 @@ async function main(): Promise<void> {
       },
     },
     async ({ suite_id }) => {
-      console.log(`Get suite tool called with suite_id: ${suite_id}`);
+      logger.debug(`Get suite tool called with suite_id: ${suite_id}`);
       try {
         const result = await getSuite(suite_id);
-        console.log(`Get suite tool completed successfully for suite_id: ${suite_id}`);
+        logger.debug(`Get suite tool completed successfully for suite_id: ${suite_id}`);
         return {
           content: [
             {
@@ -341,7 +342,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Get suite tool failed for suite_id: ${suite_id}`, err);
+        logger.error({ err }, `Get suite tool failed for suite_id: ${suite_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -361,7 +362,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_cases tool...');
+  logger.debug('Registering get_cases tool...');
   
   server.registerTool(
     'get_cases',
@@ -409,7 +410,7 @@ async function main(): Promise<void> {
       updated_by, 
       label_id 
     }) => {
-      console.log(`Get cases tool called with project_id: ${project_id}, suite_id: ${suite_id}`);
+      logger.debug(`Get cases tool called with project_id: ${project_id}, suite_id: ${suite_id}`);
       try {
         const filters = {
           project_id,
@@ -433,7 +434,7 @@ async function main(): Promise<void> {
         };
         
         const result = await getCases(filters);
-        console.log(`Get cases tool completed successfully for project_id: ${project_id}. Found ${result.cases.length} cases (total: ${result.size})`);
+        logger.debug(`Get cases tool completed successfully for project_id: ${project_id}. Found ${result.cases.length} cases (total: ${result.size})`);
         return {
           content: [
             {
@@ -443,7 +444,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Get cases tool failed for project_id: ${project_id}`, err);
+        logger.error({ err }, `Get cases tool failed for project_id: ${project_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -463,7 +464,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering add_attachment_to_case tool...');
+  logger.debug('Registering add_attachment_to_case tool...');
   
   server.registerTool(
     'add_attachment_to_case',
@@ -476,10 +477,10 @@ async function main(): Promise<void> {
       },
     },
     async ({ case_id, file_path }) => {
-      console.log(`Add attachment tool called with case_id: ${case_id}, file_path: ${file_path}`);
+      logger.debug(`Add attachment tool called with case_id: ${case_id}, file_path: ${file_path}`);
       try {
         const result = await addAttachmentToCase(case_id, file_path);
-        console.log(`Add attachment tool completed successfully for case_id: ${case_id}, attachment_id: ${result.attachment_id}`);
+        logger.debug(`Add attachment tool completed successfully for case_id: ${case_id}, attachment_id: ${result.attachment_id}`);
         return {
           content: [
             {
@@ -489,7 +490,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Add attachment tool failed for case_id: ${case_id}, file_path: ${file_path}`, err);
+        logger.error({ err }, `Add attachment tool failed for case_id: ${case_id}, file_path: ${file_path}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -509,7 +510,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_sections tool...');
+  logger.debug('Registering get_sections tool...');
   
   server.registerTool(
     'get_sections',
@@ -524,7 +525,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ project_id, suite_id, limit, offset }) => {
-      console.log(`Get sections tool called with project_id: ${project_id}, suite_id: ${suite_id}`);
+      logger.debug(`Get sections tool called with project_id: ${project_id}, suite_id: ${suite_id}`);
       try {
         const filters = {
           project_id,
@@ -534,7 +535,7 @@ async function main(): Promise<void> {
         };
         
         const result = await getSections(filters);
-        console.log(`Get sections tool completed successfully for project_id: ${project_id}. Found ${result.sections.length} sections (total: ${result.size})`);
+        logger.debug(`Get sections tool completed successfully for project_id: ${project_id}. Found ${result.sections.length} sections (total: ${result.size})`);
         return {
           content: [
             {
@@ -544,7 +545,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Get sections tool failed for project_id: ${project_id}`, err);
+        logger.error({ err }, `Get sections tool failed for project_id: ${project_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -564,7 +565,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_runs tool...');
+  logger.debug('Registering get_runs tool...');
   
   server.registerTool(
     'get_runs',
@@ -585,7 +586,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ project_id, created_after, created_before, created_by, is_completed, limit, milestone_id, offset, refs_filter, suite_id }) => {
-      console.log(`Get runs tool called with project_id: ${project_id}`);
+      logger.debug(`Get runs tool called with project_id: ${project_id}`);
       
       const filters = {
         project_id,
@@ -601,7 +602,7 @@ async function main(): Promise<void> {
       };
 
       const result = await getRuns(filters);
-      console.log(`Get runs tool completed. Found ${result.runs.length} runs.`);
+      logger.debug(`Get runs tool completed. Found ${result.runs.length} runs.`);
       return {
         content: [
           {
@@ -613,7 +614,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_run tool...');
+  logger.debug('Registering get_run tool...');
   
   server.registerTool(
     'get_run',
@@ -625,9 +626,9 @@ async function main(): Promise<void> {
       },
     },
     async ({ run_id }) => {
-      console.log(`Get run tool called with run_id: ${run_id}`);
+      logger.debug(`Get run tool called with run_id: ${run_id}`);
       const result = await getRun(run_id);
-      console.log(`Get run tool completed. Retrieved run: ${result.name}`);
+      logger.debug(`Get run tool completed. Retrieved run: ${result.name}`);
       return {
         content: [
           {
@@ -639,7 +640,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering update_run tool...');
+  logger.debug('Registering update_run tool...');
   
   server.registerTool(
     'update_run',
@@ -662,7 +663,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ run_id, name, description, milestone_id, include_all, case_ids, config, config_ids, refs, start_on, due_on, custom }) => {
-      console.log(`Update run tool called with run_id: ${run_id}`);
+      logger.debug(`Update run tool called with run_id: ${run_id}`);
       try {
         const updates = {
           name,
@@ -684,7 +685,7 @@ async function main(): Promise<void> {
         );
         
         const result = await updateRun(run_id, cleanUpdates);
-        console.log(`Update run tool completed successfully for run_id: ${run_id}`);
+        logger.debug(`Update run tool completed successfully for run_id: ${run_id}`);
         return {
           content: [
             {
@@ -694,7 +695,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Update run tool failed for run_id: ${run_id}`, err);
+        logger.error({ err }, `Update run tool failed for run_id: ${run_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -714,7 +715,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_tests tool...');
+  logger.debug('Registering get_tests tool...');
   
   server.registerTool(
     'get_tests',
@@ -730,7 +731,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ run_id, status_id, limit, offset, label_id }) => {
-      console.log(`Get tests tool called with run_id: ${run_id}`);
+      logger.debug(`Get tests tool called with run_id: ${run_id}`);
       const filters = {
         run_id,
         status_id,
@@ -739,7 +740,7 @@ async function main(): Promise<void> {
         label_id,
       };
       const result = await getTests(filters);
-      console.log(`Get tests tool completed. Found ${result.tests.length} tests.`);
+      logger.debug(`Get tests tool completed. Found ${result.tests.length} tests.`);
       return {
         content: [
           {
@@ -751,7 +752,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_test tool...');
+  logger.debug('Registering get_test tool...');
   
   server.registerTool(
     'get_test',
@@ -764,13 +765,13 @@ async function main(): Promise<void> {
       },
     },
     async ({ test_id, with_data }) => {
-      console.log(`Get test tool called with test_id: ${test_id}`);
+      logger.debug(`Get test tool called with test_id: ${test_id}`);
       const filters = {
         test_id,
         with_data,
       };
       const result = await getTest(filters);
-      console.log(`Get test tool completed. Retrieved test: ${result.title}`);
+      logger.debug(`Get test tool completed. Retrieved test: ${result.title}`);
       return {
         content: [
           {
@@ -782,7 +783,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering update_test tool...');
+  logger.debug('Registering update_test tool...');
   
   server.registerTool(
     'update_test',
@@ -796,7 +797,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ test_id, labels, custom }) => {
-      console.log(`Update test tool called with test_id: ${test_id}`);
+      logger.debug(`Update test tool called with test_id: ${test_id}`);
       try {
         const updates = {
           labels,
@@ -809,7 +810,7 @@ async function main(): Promise<void> {
         );
         
         const result = await updateTest(test_id, cleanUpdates);
-        console.log(`Update test tool completed successfully for test_id: ${test_id}`);
+        logger.debug(`Update test tool completed successfully for test_id: ${test_id}`);
         return {
           content: [
             {
@@ -819,7 +820,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log(`Update test tool failed for test_id: ${test_id}`, err);
+        logger.error({ err }, `Update test tool failed for test_id: ${test_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -839,7 +840,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering add_result tool...');
+  logger.debug('Registering add_result tool...');
   
   server.registerTool(
     'add_result',
@@ -864,7 +865,7 @@ async function main(): Promise<void> {
       },
     },
     async ({ test_id, status_id, comment, version, elapsed, defects, assignedto_id, custom_step_results, custom }) => {
-      console.log(`Add result tool called with test_id: ${test_id}, status_id: ${status_id}`);
+      logger.debug(`Add result tool called with test_id: ${test_id}, status_id: ${status_id}`);
       const filters = {
         test_id,
         status_id,
@@ -877,7 +878,7 @@ async function main(): Promise<void> {
         custom,
       };
       const result = await addResult(filters);
-      console.log(`Add result tool completed. Result ID: ${result.id}`);
+      logger.debug(`Add result tool completed. Result ID: ${result.id}`);
       return {
         content: [
           {
@@ -889,7 +890,7 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Registering get_case_fields tool...');
+  logger.debug('Registering get_case_fields tool...');
   
   server.registerTool(
     'get_case_fields',
@@ -899,10 +900,10 @@ async function main(): Promise<void> {
       inputSchema: {},
     },
     async () => {
-      console.log('Get case fields tool called');
+      logger.debug('Get case fields tool called');
       try {
         const result = await getCaseFields();
-        console.log(`Get case fields tool completed successfully. Found ${result.length} fields`);
+        logger.debug(`Get case fields tool completed successfully. Found ${result.length} fields`);
         return {
           content: [
             {
@@ -912,7 +913,7 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        console.log('Get case fields tool failed', err);
+        logger.error({ err }, 'Get case fields tool failed');
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
@@ -931,33 +932,32 @@ async function main(): Promise<void> {
     },
   );
 
-  console.log('Creating stdio transport...');
+  logger.debug('Creating stdio transport...');
   const transport = new StdioServerTransport();
   
-  console.log('Connecting to transport...');
+  logger.debug('Connecting to transport...');
   await server.connect(transport);
   
-  console.log('MCP server connected and ready!');
+  logger.info('MCP server connected and ready!');
 }
 
 main().catch((error: unknown) => {
   const err = error as Error;
-  console.error('Failed to start MCP server:', err.message);
-  console.error('Stack trace:', err.stack);
+  logger.error({ err }, 'Failed to start MCP server');
   process.exit(1);
 });
 
 process.on('exit', (code) => {
-  console.log(`MCP server exiting with code: ${code}`);
+  logger.info(`MCP server exiting with code: ${code}`);
 });
 
 process.on('SIGINT', () => {
-  console.log('MCP server received SIGINT, shutting down...');
+  logger.info('MCP server received SIGINT, shutting down...');
   process.exit(0);
 });
 
 process.on('SIGTERM', () => {
-  console.log('MCP server received SIGTERM, shutting down...');
+  logger.info('MCP server received SIGTERM, shutting down...');
   process.exit(0);
 });
 
