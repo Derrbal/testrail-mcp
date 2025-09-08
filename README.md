@@ -1,62 +1,77 @@
 # TestRail MCP Server
 
-A Model Context Protocol (MCP) server that provides TestRail integration tools for AI assistants like Cursor.
+## What is this?
+
+This tool connects your TestRail test management system with AI assistants like Cursor or Claude Desktop. It allows your AI assistant to read and update test cases, add test results, and manage your testing workflow through simple conversations.
 
 ## Features
 
-- Get TestRail test cases, projects, suites, runs, and tests
-- Update test cases, runs, and tests
-- Add test results and attachments
-- Full TestRail API integration
-- Seamless integration with Cursor and other MCP-compatible AI assistants
+- **View Test Cases**: Show test cases, projects, and test runs
+- **Update Tests**: Modify test case details, titles, and descriptions
+- **Add Results**: Record test results and upload screenshots
+- **Search & Filter**: Find specific tests or projects quickly
+- **File Attachments**: Upload documents and images to test cases
+- **Full Integration**: Works with Cursor, Claude Desktop, and other AI tools
+
+## Who is this for?
+
+- **QA Engineers** who want to manage tests through AI conversations
+- **Project Managers** who need quick access to test information
+- **Developers** who want to integrate testing into their AI-assisted workflow
+- **Anyone** who uses TestRail and wants to make it more accessible through AI
 
 ## Quick Start
 
-### Prerequisites
+1. **Install Node.js** from [nodejs.org](https://nodejs.org/)
+2. **Get TestRail API key** from your TestRail settings
+3. **Install the server**: `npm install -g testrail-mcp-server`
+4. **Configure your AI assistant** with your TestRail credentials
+5. **Restart your AI assistant** and start asking questions!
 
-- Node.js 18.17.0 or higher
-- npm
+## Prerequisites
 
-### Installation Options
+You need these tools before installing:
 
-#### Option 1: Using npm package (Recommended)
+1. **Node.js 18.17.0+** - Download from [nodejs.org](https://nodejs.org/) (LTS version)
+2. **npm** - Comes with Node.js automatically
+3. **AI Assistant** - Cursor ([cursor.sh](https://cursor.sh/)) or Claude Desktop ([claude.ai](https://claude.ai/download))
+4. **TestRail Account** - With API access enabled
 
+**Verify installation:**
 ```bash
-# Install globally
+node --version  # Should show 18.17.0 or higher
+npm --version   # Should show a version number
+```
+
+## Getting TestRail API Credentials
+
+1. **Log into TestRail** at your instance URL (e.g., `https://yourcompany.testrail.com`)
+
+2. **Get API Key**:
+   - Click your profile picture → "My Settings"
+   - Scroll to "API Keys" section
+   - Click "Add API Key"
+   - Name it (e.g., "MCP Server")
+   - **Copy and save the API key securely**
+
+3. **Note your credentials**:
+   - **Username**: Your TestRail login (usually email)
+   - **URL**: Your TestRail web address
+
+## Installation
+
+### Step 1: Install the Server
+Open Command Prompt/Terminal and run:
+```bash
 npm install -g testrail-mcp-server
-
-# Or install locally
-npm install testrail-mcp-server
 ```
 
-#### Option 2: From source
+### Step 2: Configure Your AI Assistant
 
-```bash
-# Clone and setup
-git clone https://github.com/Derrbal/testrail-mcp.git
-cd testrail-mcp
-npm install
-npm run build
-```
-
-### Configure Environment Variables
-
-Create a `.env` file in your project root or set environment variables:
-
-```env
-TESTRAIL_USERNAME=your_testrail_username
-TESTRAIL_API_KEY=your_testrail_api_key
-TESTRAIL_URL=https://your-instance.testrail.com
-```
-
-## Cursor Integration
-
-### Setup
-
-#### Option 1: Using npm package (Recommended)
-
-1. **Configure Cursor MCP Settings**:
-Open Cursor and go to Settings → Extensions → MCP. Add the following configuration:
+**For Cursor Users:**
+1. Open Cursor → Settings (`Ctrl + ,` or `Cmd + ,`)
+2. Find "MCP" settings
+3. Add this configuration:
 
 ```json
 {
@@ -74,146 +89,101 @@ Open Cursor and go to Settings → Extensions → MCP. Add the following configu
 }
 ```
 
-#### Option 2: Using local installation
+**For Claude Desktop Users:**
+1. Find config file:
+   - Windows: `%APPDATA%\Claude\claude_desktop_config.json`
+   - Mac: `~/Library/Application Support/Claude/claude_desktop_config.json`
+2. Add the same configuration as above
 
-1. **Configure Cursor MCP Settings**:
-Open Cursor and go to Settings → Extensions → MCP. Add the following configuration:
+**Replace these values:**
+- `your_testrail_username`: Your TestRail login (usually email)
+- `your_testrail_api_key`: The API key from TestRail
+- `https://your-instance.testrail.com`: Your TestRail URL
 
-```json
-{
-  "mcpServers": {
-    "testrail": {
-      "command": "node",
-      "args": ["/path/to/testrail-mcp/dist/server.js"],
-      "env": {
-        "TESTRAIL_USERNAME": "your_testrail_username",
-        "TESTRAIL_API_KEY": "your_testrail_api_key",
-        "TESTRAIL_URL": "https://your-instance.testrail.com"
-      }
-    }
-  }
-}
-```
+### Step 3: Restart and Test
+1. **Restart** your AI assistant completely
+2. **Test**: Ask "Can you show me my TestRail projects?"
 
-2. **Restart Cursor** to load the MCP server configuration.
+## Usage
 
-### Usage
+Once set up, simply talk to your AI assistant naturally:
 
-#### Using with Cursor
+**Viewing Information:**
+- "Show me all my TestRail projects"
+- "What test cases are in project 1?"
+- "Show me test case number 123"
 
-Once configured, you can use TestRail tools directly in Cursor's chat:
+**Updating Tests:**
+- "Update test case 123 with the title 'Login functionality test'"
+- "Change the priority of test case 456 to high"
+- "Add a comment to test case 789"
 
-#### Using the npm package directly
+**Adding Results:**
+- "Mark test 456 as passed"
+- "Add a failed result to test 789 with comment 'Button not clickable'"
+- "Upload this screenshot to test case 123"
 
-You can also use the MCP server directly from the command line:
+**Searching:**
+- "Find all test cases with 'login' in the title"
+- "Show me failed tests from the last test run"
 
-```bash
-# Run the server (stdio transport)
-npx testrail-mcp-server
+## Troubleshooting
 
-# Or run with HTTP transport
-npx testrail-mcp-server --http
-```
+**"Command not found" or "npm is not recognized"**
+- Install Node.js from [nodejs.org](https://nodejs.org/)
+- Restart Command Prompt/Terminal
+- Check with `node --version`
 
-**Example Commands**:
-- "Get all TestRail projects"
-- "Show me test cases for project ID 1"
-- "Update test case 123 with new title"
-- "Add a test result for test ID 456"
-- "Upload an attachment to test case 789"
+**"Authentication failed" or "Invalid credentials"**
+- Verify your TestRail username (usually email)
+- Copy API key again from TestRail
+- Check TestRail URL starts with `https://`
 
-**Available Tools**:
-- `get_case` - Fetch a TestRail test case by ID
-- `add_case` - Create a new test case in a section
-- `update_case` - Update a TestRail test case
-- `get_projects` - List all TestRail projects
-- `get_project` - Get project details
-- `get_suites` - Get test suites for a project
-- `get_suite` - Get suite details
-- `get_cases` - Get test cases with filtering
-- `add_attachment_to_case` - Upload file attachment
-- `get_sections` - Get test sections
-- `get_runs` - Get test runs
-- `get_run` - Get run details
-- `update_run` - Update test run
-- `get_tests` - Get tests in a run
-- `get_test` - Get test details
-- `update_test` - Update test
-- `add_result` - Add test result
-- `get_case_fields` - Get available custom fields for test cases
+**"Connection timeout" or "Cannot connect to TestRail"**
+- Check internet connection
+- Verify TestRail URL is correct
+- Test TestRail in web browser
 
-### Troubleshooting
+**AI assistant doesn't respond to TestRail questions**
+- Restart your AI assistant completely
+- Check configuration file format (valid JSON)
+- Verify all required fields are filled
 
-**Common Issues**:
-1. **Server not found**: Ensure the path to `dist/server.js` is correct
-2. **Authentication errors**: Verify your TestRail credentials in the environment variables
-3. **Permission denied**: Make sure the server file is executable
-4. **Connection timeout**: Check your TestRail URL and network connectivity
+**"Permission denied" error**
+- Run Command Prompt as Administrator (Windows) or with `sudo` (Mac/Linux)
+- Update to latest Node.js version
 
-**Debug Mode**:
-Enable debug logging by adding to your environment variables:
-```env
-DEBUG=true
-LOG_LEVEL=debug
-```
+**Still having trouble?**
+- Check error messages for clues
+- Try installation steps again
+- Create an issue on [GitHub](https://github.com/Derrbal/testrail-mcp/issues) with your error details
 
-## Deployment Options
+## Security Best Practices
 
-### Local Development
+- **Never share your API key** - treat it like a password
+- **Use HTTPS URLs** - ensure your TestRail URL starts with `https://`
+- **Don't put API keys in code** - always use configuration files
+- **Rotate API keys regularly** - change them every few months
+- **Keep TestRail account secure** - use strong passwords and 2FA
 
-```bash
-# Run in development mode
-npm run dev
+**What NOT to do:**
+- Don't share configuration files with others
+- Don't put API keys in public repositories
+- Don't use HTTP URLs (only HTTPS)
+- Don't share screenshots showing your API key
 
-# Start the server (stdio transport)
-npm start
+## Additional Resources
 
-# Start the server (HTTP transport on port 1823)
-npm run start:http
+**Helpful Links:**
+- [TestRail API Documentation](https://www.gurock.com/testrail/docs/api/reference)
+- [Cursor MCP Documentation](https://docs.cursor.com/en/context/mcp)
+- [Claude Desktop Setup Guide](https://www.youtube.com/watch?v=i7LuJPNKQYI)
 
-# Run tests
-npm test
-```
-
-### Docker Deployment
-
-**Quick Start**:
-```bash
-# Set environment variables
-export TESTRAIL_USERNAME="your_testrail_username"
-export TESTRAIL_API_KEY="your_testrail_api_key"
-export TESTRAIL_URL="https://your-instance.testrail.com"
-
-# Build and run with Docker Compose
-docker-compose up -d
-```
-
-**Manual Build**:
-```bash
-# Build the image
-docker build -t testrail-mcp-server .
-
-# Run the container
-docker run -d \
-  --name testrail-mcp-server \
-  -p 1823:1823 \
-  -e TESTRAIL_USERNAME=your_username \
-  -e TESTRAIL_API_KEY=your_api_key \
-  -e TESTRAIL_URL=https://your-instance.testrail.com \
-  testrail-mcp-server
-```
-
-
-
-## Security Considerations
-
-- Store TestRail API keys securely using environment variables
-- Never commit API keys to version control
-- Use HTTPS for TestRail URLs
-- Consider using Docker secrets for production deployments
-- Regularly rotate API keys
+**Getting Support:**
+- [GitHub Issues](https://github.com/Derrbal/testrail-mcp/issues) - Report bugs or ask questions
+- Contact your TestRail administrator for API access issues
 
 ## License
 
-MIT
+MIT License - see [LICENSE](LICENSE) file for details.
 
