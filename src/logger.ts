@@ -25,6 +25,6 @@ export const logger = pino({
     ],
     censor: '[REDACTED]'
   }
-});
+}, process.stderr);
 
 
