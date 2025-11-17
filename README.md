@@ -4,6 +4,10 @@
 
 This tool connects your TestRail test management system with AI assistants like Cursor or Claude Desktop. It allows your AI assistant to read and update test cases, add test results, and manage your testing workflow through simple conversations.
 
+<a href="https://glama.ai/mcp/servers/@Derrbal/testrail-mcp">
+  <img width="380" height="200" src="https://glama.ai/mcp/servers/@Derrbal/testrail-mcp/badge" alt="TestRail Server MCP server" />
+</a>
+
 ## Features
 
 - **View Test Cases**: Show test cases, projects, and test runs
@@ -186,4 +190,3 @@ Once set up, simply talk to your AI assistant naturally:
 ## License
 
 MIT License - see [LICENSE](LICENSE) file for details.
-
