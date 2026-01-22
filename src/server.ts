@@ -65,22 +65,100 @@ async function main(): Promise<void> {
     'add_case',
     {
       title: 'Add TestRail Case',
-      description: 'Create a new TestRail test case in a specific section. IMPORTANT: Before creating a case, gather required information using get_projects, get_suites, get_sections, and get_case_fields tools to ensure proper section_id, type_id, and custom field values. Or ask the user to provide the information if not provided.',
+      description: `Create a new TestRail test case.
+
+REQUIRED WORKFLOW (follow exactly to avoid errors):
+1. Call get_cases with section_id and limit=1 to see an existing case's field format
+2. Call get_case_fields to find ALL required fields (configs[].options.is_required=true)
+3. Include ALL required custom fields matching the format from step 1
+
+REQUIRED CUSTOM FIELDS (vary by project - check is_required flag):
+- custom_automation_type: integer (e.g., 0=None, 1=Automated)
+- custom_case_complexity: integer (e.g., 0=Simple, 1=Medium, 2=Complex)  
+- custom_version: integer (project-specific version ID)
+
+TEST STEPS - Two mutually exclusive formats exist (check existing cases to see which one the project uses):
+
+Format A - Separated steps (type_id=10, most common):
+"custom_steps_separated": [
+  { "content": "Step 1 action", "expected": "Step 1 expected result" },
+  { "content": "Step 2 action", "expected": "Step 2 expected result" }
+]
+
+Format B - Simple text fields (type_id=3):
+"custom_steps": "Step 1\\nStep 2\\nStep 3"
+"custom_expected": "Expected result text"
+
+IMPORTANT: Do NOT mix formats. Check an existing case in the target section to see which format is used.
+
+HTTP 400 ERROR: Means missing required fields OR wrong field format. Check existing cases first.
+
+Section resolution: Provide section_id directly, or project_id (+ suite_id for multi-suite projects) to auto-resolve.`,
       inputSchema: {
         title: z.string().min(1).describe('Test case title - should be descriptive and unique within the section'),
-        section_id: z.number().int().positive().describe('Section ID where the case will be created. REQUIRED: Use get_sections tool first to find valid section IDs for your project/suite. Different projects have different section structures.'),
-        type_id: z.number().int().positive().optional().describe('Test case type ID (e.g., 1=Acceptance, 2=Accessibility, 3=Automated, 4=Compatibility, 5=Destructive, 6=Functional, 7=Other, 8=Performance, 9=Regression, 10=Security, 11=Smoke & Sanity, 12=Usability). RECOMMENDED: Use get_cases tool to see what type_id values are used in existing cases in your target section.'),
-        priority_id: z.number().int().positive().optional().describe('Priority ID (1=Low, 2=Medium, 3=High, 4=Critical). RECOMMENDED: Use get_cases tool to see what priority_id values are used in existing cases.'),
-        refs: z.string().nullable().optional().describe('References (e.g., requirement IDs, JIRA tickets, user story numbers). Can be comma-separated for multiple references.'),
-        custom: z.record(z.string(), z.unknown()).optional().describe('Custom fields (key-value pairs). REQUIRED: Use get_case_fields tool first to discover available custom fields and their valid values. Common fields include: custom_automation_type (1=None, 2=Playwright, 3=ChatGPT, 4=Non-Automated, 5=Partial), custom_environment (1=UAT Only, 2=UAT/Prod, 3=Demo UAT, 4=Live UAT), custom_preconds (preconditions text), custom_steps (test steps text), custom_expected (expected results text). Some custom fields are required by the project configuration.'),
+        section_id: z.number().int().positive().optional().describe('Section ID where the case will be created. If not provided, project_id must be provided to auto-resolve the section.'),
+        project_id: z.number().int().positive().optional().describe('Project ID. Required if section_id is not provided. Used to auto-resolve section and to identify required custom fields.'),
+        suite_id: z.number().int().positive().optional().describe('Suite ID. Required for multi-suite projects (suite_mode=3) if section_id is not provided.'),
+        type_id: z.number().int().positive().optional().describe('Test case type ID (e.g., 1=Acceptance, 6=Functional, 7=Other, 9=Regression). Use get_cases to see values used in existing cases.'),
+        priority_id: z.number().int().positive().optional().describe('Priority ID (1=Low, 2=Medium, 3=High, 4=Critical).'),
+        refs: z.string().nullable().optional().describe('References (e.g., JIRA tickets). Comma-separated for multiple.'),
+        custom: z.record(z.string(), z.unknown()).optional().describe('CRITICAL: Custom fields object. MUST include ALL required fields (check is_required=true in get_case_fields). MUST match format used in existing cases (check with get_cases). Example with separated steps: { "custom_automation_type": 0, "custom_case_complexity": 0, "custom_version": 11, "custom_steps_separated": [{"content": "Do X", "expected": "Y happens"}] }'),
       },
     },
-    async ({ title, section_id, type_id, priority_id, refs, custom }) => {
-      logger.debug(`Add case tool called with section_id: ${section_id}, title: ${title}`);
+    async ({ title, section_id, project_id, suite_id, type_id, priority_id, refs, custom }) => {
+      logger.debug(`Add case tool called with section_id: ${section_id}, project_id: ${project_id}, suite_id: ${suite_id}, title: ${title}`);
       try {
+        let resolvedSectionId = section_id;
+        
+        // If section_id is not provided, resolve it from project_id
+        if (!resolvedSectionId) {
+          if (!project_id) {
+            return {
+              content: [
+                { 
+                  type: 'text', 
+                  text: 'Either section_id or project_id must be provided. If project_id is provided, the tool will automatically find a suitable section. If you need to find sections first, use get_projects and get_sections tools.' 
+                },
+              ],
+              isError: true,
+            };
+          }
+          
+          // Fetch sections for the project
+          logger.debug(`Resolving section_id from project_id: ${project_id}, suite_id: ${suite_id}`);
+          const sectionsResult = await getSections({
+            project_id,
+            ...(suite_id !== undefined && { suite_id }),
+          });
+          
+          if (!sectionsResult.sections || sectionsResult.sections.length === 0) {
+            return {
+              content: [
+                { 
+                  type: 'text', 
+                  text: `No sections found for project ${project_id}${suite_id ? ` and suite ${suite_id}` : ''}. Please create a section first or use get_sections tool to verify available sections.` 
+                },
+              ],
+              isError: true,
+            };
+          }
+          
+          // Find the first root-level section (depth=0, parent_id=null)
+          const rootSection = sectionsResult.sections.find(s => s.depth === 0 && s.parent_id === null);
+          
+          if (rootSection) {
+            resolvedSectionId = rootSection.id;
+            logger.debug(`Auto-resolved section_id: ${resolvedSectionId} (${rootSection.name})`);
+          } else {
+            // If no root section found, use the first section
+            resolvedSectionId = sectionsResult.sections[0].id;
+            logger.debug(`Auto-resolved section_id: ${resolvedSectionId} (${sectionsResult.sections[0].name}) - using first available section`);
+          }
+        }
+        
         const payload: CaseCreatePayload = {
           title,
-          section_id,
+          section_id: resolvedSectionId,
           type_id,
           priority_id,
           refs,
@@ -88,7 +166,7 @@ async function main(): Promise<void> {
         };
         
         const result = await addCase(payload);
-        logger.debug(`Add case tool completed successfully. Case ID: ${result.id}`);
+        logger.debug(`Add case tool completed successfully. Case ID: ${result.id}, Section ID: ${resolvedSectionId}`);
         return {
           content: [
             {
@@ -98,13 +176,24 @@ async function main(): Promise<void> {
           ],
         };
       } catch (err) {
-        logger.error({ err }, `Add case tool failed for section_id: ${section_id}`);
+        logger.error({ err }, `Add case tool failed for section_id: ${section_id}, project_id: ${project_id}`);
         const e = err as { type?: string; status?: number; message?: string };
         let message = 'Unexpected error';
         if (e?.type === 'auth') message = 'Authentication failed: check TESTRAIL_USER/API_KEY';
-        else if (e?.type === 'not_found') message = `Section ${section_id} not found. Use get_sections tool to find valid section IDs for your project.`;
-        else if (e?.type === 'validation_error') message = `Validation error: ${e.message}. Check custom field values using get_case_fields tool and ensure required fields are provided.`;
-        else if (e?.type === 'permission_denied') message = `Permission denied for section ${section_id}. Try a different project or section using get_projects and get_sections tools.`;
+        else if (e?.type === 'not_found') {
+          if (section_id) {
+            message = `Section ${section_id} not found. Use get_sections tool to find valid section IDs for your project.`;
+          } else {
+            message = `Project ${project_id}${suite_id ? ` or suite ${suite_id}` : ''} not found. Use get_projects and get_suites tools to find valid IDs.`;
+          }
+        }
+        else if (e?.type === 'validation_error') {
+          message = `Validation error (HTTP 400): ${e.message}. This usually means MISSING REQUIRED CUSTOM FIELDS. ` +
+            `SOLUTION: 1) Call get_case_fields tool, 2) Find fields where configs[].options.is_required=true, ` +
+            `3) Include ALL required fields in the "custom" parameter. ` +
+            `Common required fields: custom_automation_type, custom_case_complexity, custom_version.`;
+        }
+        else if (e?.type === 'permission_denied') message = `Permission denied. Try a different project or section using get_projects and get_sections tools.`;
         else if (e?.type === 'rate_limited') message = 'Rate limited by TestRail; try again later';
         else if (e?.type === 'server') message = 'TestRail server error';
         else if (e?.type === 'network') message = 'Network error contacting TestRail';

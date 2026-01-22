@@ -4,7 +4,7 @@ import { config } from '../config';
 import { logger } from '../logger';
 
 export interface TestRailError {
-  type: 'auth' | 'not_found' | 'rate_limited' | 'server' | 'network' | 'unknown';
+  type: 'auth' | 'not_found' | 'rate_limited' | 'server' | 'network' | 'validation_error' | 'unknown';
   status?: number;
   message: string;
 }
@@ -393,24 +393,47 @@ export class TestRailClient {
 
   private normalizeError(error: unknown): TestRailError {
     // Support both AxiosError and manually thrown errors with a response/status
-    const anyErr = error as { response?: { status?: number }; message?: string } | undefined;
+    const anyErr = error as { response?: { status?: number; data?: { error?: string } }; message?: string } | undefined;
     const status = anyErr?.response?.status;
+    
+    // Extract TestRail error message from response body (TestRail returns errors in { error: "message" } format)
+    const extractTestRailMessage = (err: unknown): string | undefined => {
+      const axiosErr = err as { response?: { data?: { error?: string } } };
+      const errorData = axiosErr?.response?.data;
+      if (errorData && typeof errorData === 'object' && 'error' in errorData) {
+        return errorData.error as string;
+      }
+      return undefined;
+    };
 
     if (axios.isAxiosError(error)) {
-      if (status === 401 || status === 403) return { type: 'auth', status, message: 'Unauthorized' };
-      if (status === 404) return { type: 'not_found', status, message: 'Not found' };
-      if (status === 429) return { type: 'rate_limited', status, message: 'Rate limited' };
-      if (status && status >= 500) return { type: 'server', status, message: 'Server error' };
+      const testRailMessage = extractTestRailMessage(error);
+      
+      if (status === 401 || status === 403) return { type: 'auth', status, message: testRailMessage ?? 'Unauthorized' };
+      if (status === 404) return { type: 'not_found', status, message: testRailMessage ?? 'Not found' };
+      if (status === 400) {
+        // 400 errors typically indicate validation issues (missing required fields, invalid values)
+        const message = testRailMessage ?? 'Bad request - likely missing required fields or invalid values';
+        return { type: 'validation_error', status, message };
+      }
+      if (status === 429) return { type: 'rate_limited', status, message: testRailMessage ?? 'Rate limited' };
+      if (status && status >= 500) return { type: 'server', status, message: testRailMessage ?? 'Server error' };
       if (!status) return { type: 'network', message: (error as AxiosError).message ?? 'Network error' };
-      return { type: 'unknown', status, message: (error as AxiosError).message ?? 'Unknown error' };
+      return { type: 'unknown', status, message: testRailMessage ?? (error as AxiosError).message ?? 'Unknown error' };
     }
 
     if (typeof status === 'number') {
-      if (status === 401 || status === 403) return { type: 'auth', status, message: 'Unauthorized' };
-      if (status === 404) return { type: 'not_found', status, message: 'Not found' };
-      if (status === 429) return { type: 'rate_limited', status, message: 'Rate limited' };
-      if (status >= 500) return { type: 'server', status, message: 'Server error' };
-      return { type: 'unknown', status, message: anyErr?.message ?? 'Unknown error' };
+      const testRailMessage = extractTestRailMessage(anyErr);
+      
+      if (status === 401 || status === 403) return { type: 'auth', status, message: testRailMessage ?? 'Unauthorized' };
+      if (status === 404) return { type: 'not_found', status, message: testRailMessage ?? 'Not found' };
+      if (status === 400) {
+        const message = testRailMessage ?? 'Bad request - likely missing required fields or invalid values';
+        return { type: 'validation_error', status, message };
+      }
+      if (status === 429) return { type: 'rate_limited', status, message: testRailMessage ?? 'Rate limited' };
+      if (status >= 500) return { type: 'server', status, message: testRailMessage ?? 'Server error' };
+      return { type: 'unknown', status, message: testRailMessage ?? anyErr?.message ?? 'Unknown error' };
     }
 
     return { type: 'unknown', message: (error as Error)?.message ?? 'Unknown error' };
